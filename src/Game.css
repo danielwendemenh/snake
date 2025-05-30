@@ -1,0 +1,114 @@
+:root {
+  --bg-start: #1e1e2f;
+  --bg-end:   #1e1e40;
+  --cell-bg:  #2e2e3e;
+  --snake:    #00e676;
+  --food:     #ff3d00;
+  --gap:      2px;
+  --font:     'Segoe UI', Tahoma, sans-serif;
+}
+
+body {
+  margin:0; padding:0;
+  background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+  font-family: var(--font);
+  display: flex; align-items:center; justify-content:center;
+  height:100vh;
+}
+
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.game-wrapper {
+  width: 500px;
+  position: relative;
+}
+
+.score-board {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 20px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.score-board .label { font-size: 1rem; }
+.score-board .value { font-size: 1.4rem; font-weight: bold; }
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  grid-template-rows:    repeat(20, 1fr);
+  gap: var(--gap);
+  background: #000;
+  border: 4px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cell {
+  background: var(--cell-bg);
+  width: 100%; height: 0; padding-bottom: 100%;
+  transition: background 0.2s;
+}
+
+.cell.snake {
+  background: var(--snake);
+  background-image: radial-gradient(circle at top left, #fff3, var(--snake));
+}
+
+.cell.food {
+  background: var(--food);
+  background-image: radial-gradient(circle at center, #fff5, var(--food));
+  animation: pulse 0.7s infinite alternate;
+}
+
+@keyframes pulse {
+  from { transform: scale(1); }
+  to   { transform: scale(1.2); }
+}
+
+.overlay {
+  position: absolute; top:50%; left:50%;
+  transform: translate(-50%,-50%);
+  background: rgba(0,0,0,0.75);
+  padding: 2rem 2.5rem;
+  border-radius: 8px;
+  text-align: center;
+  color: #fff;
+  z-index: 10;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+}
+
+.overlay h1 {
+  margin: 0 0 1rem;
+  font-size: 2rem;
+}
+
+.overlay button {
+  background: var(--snake);
+  border: none;
+  padding: 0.6rem 1.4rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #000;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.overlay button:hover {
+  background: #00c853;
+  transform: translateY(-2px);
+}
+
+.game-over {
+  position: absolute;
+  top: 20px;
+  color: red;
+  font-size: 2rem;
+}
