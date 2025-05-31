@@ -20,7 +20,7 @@ A classic Snake game built with React and TypeScript.
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/snake-react.git
+git clone https://github.com/danielwendemenh/snake
 cd snake-react
 
 # Install dependencies
