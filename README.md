@@ -21,7 +21,7 @@ A classic Snake game built with React and TypeScript.
 ```bash
 # Clone the repo
 git clone https://github.com/danielwendemenh/snake
-cd snake-react
+cd snake
 
 # Install dependencies
 npm install
