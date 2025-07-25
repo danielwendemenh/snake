@@ -3,9 +3,15 @@
   --bg-end:   #1e1e40;
   --cell-bg:  #2e2e3e;
   --snake:    #00e676;
+  --snake-dark: #00c853;
+  --snake-head: #00ff88;
+  --snake-tail: #008040;
   --food:     #ff3d00;
   --gap:      2px;
   --font:     'Segoe UI', Tahoma, sans-serif;
+  --overlay-bg: rgba(0,0,0,0.85);
+  --button-hover: #00c853;
+  --button-active: #00a040;
 }
 
 body {
@@ -14,6 +20,8 @@ body {
   font-family: var(--font);
   display: flex; align-items:center; justify-content:center;
   height:100vh;
+  overflow: hidden;
+  color: #fff;
 }
 
 .game-container {
@@ -21,23 +29,40 @@ body {
   flex-direction: column;
   align-items: center;
 }
+
 .game-wrapper {
   width: 500px;
+  max-width: 90vw;
   position: relative;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  border-radius: 10px;
 }
 
 .score-board {
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
   padding: 12px 20px;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.8);
   color: #fff;
   border-radius: 8px;
   margin-bottom: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  text-align: center;
 }
 
-.score-board .label { font-size: 1rem; }
-.score-board .value { font-size: 1.4rem; font-weight: bold; }
+.score-board .label { 
+  font-size: 0.9rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.score-board .value { 
+  font-size: 1.5rem; 
+  font-weight: bold; 
+  text-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
 
 .board {
   display: grid;
@@ -48,67 +73,235 @@ body {
   border: 4px solid rgba(255,255,255,0.1);
   border-radius: 10px;
   overflow: hidden;
+  aspect-ratio: 1 / 1;
 }
 
 .cell {
   background: var(--cell-bg);
   width: 100%; height: 0; padding-bottom: 100%;
-  transition: background 0.2s;
+  transition: background 0.1s;
 }
 
 .cell.snake {
   background: var(--snake);
-  background-image: radial-gradient(circle at top left, #fff3, var(--snake));
+  box-shadow: 0 0 5px rgba(0, 230, 118, 0.5);
+}
+
+.cell.snake.head {
+  background: var(--snake-head);
+  border-radius: 30% 30% 0 0;
+  z-index: 3;
+  position: relative;
+}
+
+.cell.snake.head::before, 
+.cell.snake.head::after {
+  content: '';
+  position: absolute;
+  background: #000;
+  width: 25%;
+  height: 25%;
+  border-radius: 50%;
+  top: 25%;
+}
+
+.cell.snake.head::before {
+  left: 20%;
+}
+
+.cell.snake.head::after {
+  right: 20%;
+}
+
+.cell.snake.head.dir-left {
+  transform: rotate(270deg);
+}
+
+.cell.snake.head.dir-right {
+  transform: rotate(90deg);
+}
+
+.cell.snake.head.dir-up {
+  transform: rotate(0deg);
+}
+
+.cell.snake.head.dir-down {
+  transform: rotate(180deg);
+}
+
+.cell.snake.body {
+  background-image: linear-gradient(45deg, var(--snake), var(--snake-dark));
+  z-index: 2;
+}
+
+.cell.snake.tail {
+  background: var(--snake-tail);
+  border-radius: 0 0 50% 50%;
+  z-index: 1;
 }
 
 .cell.food {
   background: var(--food);
   background-image: radial-gradient(circle at center, #fff5, var(--food));
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 61, 0, 0.7);
   animation: pulse 0.7s infinite alternate;
 }
 
 @keyframes pulse {
-  from { transform: scale(1); }
-  to   { transform: scale(1.2); }
+  from { transform: scale(0.9); }
+  to   { transform: scale(1.1); }
 }
 
 .overlay {
   position: absolute; top:50%; left:50%;
   transform: translate(-50%,-50%);
-  background: rgba(0,0,0,0.75);
-  padding: 2rem 2.5rem;
-  border-radius: 8px;
+  background: var(--overlay-bg);
+  padding: 2.5rem;
+  border-radius: 12px;
   text-align: center;
   color: #fff;
   z-index: 10;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+  min-width: 300px;
+  backdrop-filter: blur(5px);
 }
 
 .overlay h1 {
-  margin: 0 0 1rem;
-  font-size: 2rem;
+  margin: 0 0 1.5rem;
+  font-size: 2.5rem;
+  text-shadow: 0 0 10px rgba(0, 230, 118, 0.5);
+  background: linear-gradient(to bottom right, #fff, var(--snake));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.overlay h2 {
+  margin: 0 0 1.2rem;
+  color: var(--snake);
 }
 
 .overlay button {
-  background: var(--snake);
-  border: none;
-  padding: 0.6rem 1.4rem;
+  background: rgba(0, 230, 118, 0.2);
+  border: 2px solid var(--snake);
+  padding: 0.8rem 1.6rem;
   font-size: 1rem;
   font-weight: bold;
-  color: #000;
-  border-radius: 4px;
+  color: #fff;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: all 0.2s;
+  margin: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.overlay button.primary-button {
+  background: var(--snake);
+  color: #000;
 }
 
 .overlay button:hover {
-  background: #00c853;
-  transform: translateY(-2px);
+  background: var(--button-hover);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 200, 83, 0.4);
+  color: #000;
 }
 
-.game-over {
+.overlay button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(0, 200, 83, 0.4);
+  background: var(--button-active);
+}
+
+.overlay button.active {
+  background: var(--snake);
+  color: #000;
+}
+
+.difficulty-selector {
+  margin-bottom: 2rem;
+}
+
+.difficulty-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.control-instructions {
+  text-align: left;
+  margin: 1rem 0 2rem;
+}
+
+.control-instructions p {
+  margin: 0.6rem 0;
+}
+
+.final-score {
+  font-size: 1.3rem;
+  margin: 0.5rem 0;
+}
+
+.new-record {
+  color: gold;
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin: 0.5rem 0 2rem;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+  animation: glow 1s infinite alternate;
+}
+
+@keyframes glow {
+  from { text-shadow: 0 0 5px rgba(255, 215, 0, 0.7); }
+  to { text-shadow: 0 0 20px rgba(255, 215, 0, 0.9); }
+}
+
+.pause-button {
   position: absolute;
-  top: 20px;
-  color: red;
-  font-size: 2rem;
+  bottom: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  transition: all 0.2s;
+}
+
+.pause-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+@media (max-width: 600px) {
+  .game-wrapper {
+    width: 95vw;
+  }
+  
+  .overlay {
+    width: 80%;
+    padding: 1.5rem;
+  }
+  
+  .overlay h1 {
+    font-size: 2rem;
+  }
+  
+  .score-board {
+    flex-wrap: wrap;
+  }
+  
+  .score-board > div {
+    flex: 1 0 30%;
+  }
 }

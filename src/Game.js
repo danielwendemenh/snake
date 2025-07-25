@@ -10,7 +10,20 @@ const DIRECTIONS = {
   ArrowUp:    [ 0, -1],
   ArrowDown:  [ 0,  1],
   ArrowLeft:  [-1,  0],
-  ArrowRight: [ 1,  0]
+  ArrowRight: [ 1,  0],
+  // WASD support
+  w: [ 0, -1],
+  s: [ 0,  1],
+  a: [-1,  0],
+  d: [ 1,  0]
+};
+
+// Difficulty settings with corresponding speeds
+const DIFFICULTY = {
+  easy: { speed: 180, label: 'Easy' },
+  medium: { speed: 130, label: 'Medium' },
+  hard: { speed: 80, label: 'Hard' },
+  extreme: { speed: 50, label: 'Extreme' }
 };
 
 function Game() {
@@ -19,13 +32,23 @@ function Game() {
   const [food, setFood]   = useState(generateFood(INITIAL_SNAKE));
   const [gameOver, setGameOver] = useState(false);
 
-  // new state for score and menu
+  // Enhanced state
   const [score, setScore]     = useState(0);
   const [started, setStarted] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [highScore, setHighScore] = useState(
+    parseInt(localStorage.getItem('snakeHighScore') || '0')
+  );
+  const [difficulty, setDifficulty] = useState('medium');
+  const [showControls, setShowControls] = useState(false);
 
   const moveRef = useRef(dir);
   const touchStartRef = useRef(null);
-  useEffect(() => { moveRef.current = dir; }, [dir]);
+  const gameSpeedRef = useRef(DIFFICULTY[difficulty].speed);
+  useEffect(() => { 
+    moveRef.current = dir;
+    gameSpeedRef.current = DIFFICULTY[difficulty].speed;
+  }, [dir, difficulty]);
 
   // handle mobile swipe to change direction
   useEffect(() => {
@@ -33,33 +56,50 @@ function Game() {
       const t = e.touches[0];
       touchStartRef.current = { x: t.clientX, y: t.clientY };
     };
-    const handleTouchEnd = (e) => {
-      const t = e.changedTouches[0];
+    
+    const handleTouchMove = (e) => {
+      if (!touchStartRef.current || !started || paused) return;
+      
+      const t = e.touches[0];
       const start = touchStartRef.current;
-      if (!start) return;
       const dx = t.clientX - start.x;
       const dy = t.clientY - start.y;
-      // decide swipe axis
-      if (Math.abs(dx) > Math.abs(dy)) {
-        if (dx > 0 && moveRef.current[0] !== -1)
-          setDir(DIRECTIONS.ArrowRight);
-        else if (dx < 0 && moveRef.current[0] !== 1)
-          setDir(DIRECTIONS.ArrowLeft);
-      } else {
-        if (dy > 0 && moveRef.current[1] !== -1)
-          setDir(DIRECTIONS.ArrowDown);
-        else if (dy < 0 && moveRef.current[1] !== 1)
-          setDir(DIRECTIONS.ArrowUp);
+      
+      // Minimum swipe distance to trigger direction change
+      const minSwipeDistance = 30;
+      
+      if (Math.abs(dx) > minSwipeDistance || Math.abs(dy) > minSwipeDistance) {
+        // decide swipe axis
+        if (Math.abs(dx) > Math.abs(dy)) {
+          if (dx > 0 && moveRef.current[0] !== -1)
+            setDir(DIRECTIONS.ArrowRight);
+          else if (dx < 0 && moveRef.current[0] !== 1)
+            setDir(DIRECTIONS.ArrowLeft);
+        } else {
+          if (dy > 0 && moveRef.current[1] !== -1)
+            setDir(DIRECTIONS.ArrowDown);
+          else if (dy < 0 && moveRef.current[1] !== 1)
+            setDir(DIRECTIONS.ArrowUp);
+        }
+        // Reset after processing to allow new swipes
+        touchStartRef.current = { x: t.clientX, y: t.clientY };
       }
+    };
+
+    const handleTouchEnd = () => {
       touchStartRef.current = null;
     };
+    
     window.addEventListener('touchstart', handleTouchStart);
-    window.addEventListener('touchend',   handleTouchEnd);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+    
     return () => {
       window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchend',   handleTouchEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, []);
+  }, [started, paused]);
 
   // reset helper
   function reset() {
@@ -69,11 +109,13 @@ function Game() {
     setScore(0);
     setGameOver(false);
     setStarted(true);
+    setPaused(false);
   }
 
   // game loop
   useEffect(() => {
-    if (gameOver || !started) return;
+    if (gameOver || !started || paused) return;
+    
     const id = setInterval(() => {
       setSnake(prev => {
         const head = prev[0];
@@ -88,6 +130,13 @@ function Game() {
         if (prev.some(seg => seg[0] === newHead[0] && seg[1] === newHead[1])) {
           setGameOver(true);
           clearInterval(id);
+          
+          // Update high score if needed
+          if (score > highScore) {
+            setHighScore(score);
+            localStorage.setItem('snakeHighScore', score.toString());
+          }
+          
           return prev;
         }
 
@@ -101,14 +150,17 @@ function Game() {
         }
         return newSnake;
       });
-    }, 150);
+    }, gameSpeedRef.current);
+    
     return () => clearInterval(id);
-  }, [food, gameOver, started]);
+  }, [food, gameOver, started, paused, score, highScore]);
 
   // keyboard handler
   useEffect(() => {
     const handler = e => {
+      // Direction keys
       if (DIRECTIONS[e.key]) {
+        e.preventDefault();
         const [dx,dy] = DIRECTIONS[e.key];
         const [cx,cy] = moveRef.current;
         // prevent reversing
@@ -116,42 +168,133 @@ function Game() {
           setDir(DIRECTIONS[e.key]);
         }
       }
+      
+      // Pause game with 'p' or 'Escape'
+      if ((e.key === 'p' || e.key === 'Escape') && started && !gameOver) {
+        setPaused(p => !p);
+      }
+      
+      // Start/restart with Enter
+      if (e.key === 'Enter') {
+        if (gameOver) {
+          reset();
+        } else if (!started) {
+          setStarted(true);
+        } else if (paused) {
+          setPaused(false);
+        }
+      }
     };
+    
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [started, gameOver, paused]);
+
+  // Determine if a segment is head, tail or body for styling
+  function getSegmentClass(x, y) {
+    for (let i = 0; i < snake.length; i++) {
+      const [sx, sy] = snake[i];
+      if (sx === x && sy === y) {
+        if (i === 0) return 'cell snake head';
+        if (i === snake.length - 1) return 'cell snake tail';
+        return 'cell snake body';
+      }
+    }
+    return false;
+  }
 
   return (
     <div className="game-wrapper">
       <header className="score-board">
-        <div className="label">Score</div>
-        <div className="value">{score}</div>
+        <div>
+          <div className="label">Score</div>
+          <div className="value">{score}</div>
+        </div>
+        <div>
+          <div className="label">High Score</div>
+          <div className="value">{highScore}</div>
+        </div>
+        <div>
+          <div className="label">Level</div>
+          <div className="value">{DIFFICULTY[difficulty].label}</div>
+        </div>
       </header>
 
       {!started && !gameOver &&
         <div className="overlay menu">
-          <h1>Snake</h1>
-          <button onClick={() => setStarted(true)}>Start Game</button>
+          <h1>Snake Master</h1>
+          <div className="difficulty-selector">
+            <p>Select Difficulty:</p>
+            <div className="difficulty-buttons">
+              {Object.entries(DIFFICULTY).map(([key, value]) => (
+                <button 
+                  key={key} 
+                  className={difficulty === key ? 'active' : ''}
+                  onClick={() => setDifficulty(key)}
+                >
+                  {value.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button className="primary-button" onClick={() => setStarted(true)}>Start Game</button>
+          <button onClick={() => setShowControls(true)}>How to Play</button>
+        </div>
+      }
+
+      {showControls &&
+        <div className="overlay controls">
+          <h2>How to Play</h2>
+          <div className="control-instructions">
+            <p><strong>Desktop:</strong> Use arrow keys or WASD to move</p>
+            <p><strong>Mobile:</strong> Swipe in direction you want to go</p>
+            <p><strong>Pause:</strong> Press P or ESC key</p>
+          </div>
+          <button onClick={() => setShowControls(false)}>Close</button>
         </div>
       }
 
       {gameOver &&
         <div className="overlay game-over">
           <h1>Game Over</h1>
-          <button onClick={reset}>Restart</button>
+          <p className="final-score">Your score: {score}</p>
+          {score >= highScore && <p className="new-record">New High Score!</p>}
+          <button className="primary-button" onClick={reset}>Play Again</button>
+          <button onClick={() => {setGameOver(false); setStarted(false);}}>Main Menu</button>
+        </div>
+      }
+      
+      {paused &&
+        <div className="overlay pause-menu">
+          <h2>Game Paused</h2>
+          <button className="primary-button" onClick={() => setPaused(false)}>Resume</button>
+          <button onClick={() => {setPaused(false); setStarted(false);}}>Quit</button>
         </div>
       }
 
       <div className="board">
         {Array.from({ length: BOARD_SIZE }).flatMap((_, y) =>
           Array.from({ length: BOARD_SIZE }).map((_, x) => {
-            const isSnake = snake.some(s => s[0]===x && s[1]===y);
+            const snakeClass = getSegmentClass(x, y);
             const isFood  = food[0]===x && food[1]===y;
-            const cls = isSnake ? 'cell snake' : isFood ? 'cell food' : 'cell';
-            return <div className={cls} key={`${x}-${y}`} />;
+            const cls = snakeClass || (isFood ? 'cell food' : 'cell');
+            const direction = snakeClass && snakeClass.includes('head') ? 
+              `dir-${
+                moveRef.current[0] === 1 ? 'right' :
+                moveRef.current[0] === -1 ? 'left' :
+                moveRef.current[1] === 1 ? 'down' :
+                'up'
+              }` : '';
+            return <div className={`${cls} ${direction}`} key={`${x}-${y}`} />;
           })
         )}
       </div>
+      
+      {started && !gameOver && !paused && 
+        <button className="pause-button" onClick={() => setPaused(true)}>
+          II
+        </button>
+      }
     </div>
   );
 }
