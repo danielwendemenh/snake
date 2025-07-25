@@ -101,16 +101,44 @@ function Game() {
     };
   }, [started, paused]);
 
-  // reset helper
+  // Enhanced reset function with complete state reset
   function reset() {
+    // Reset snake position to initial state
     setSnake(INITIAL_SNAKE);
+    
+    // Reset direction to initial right movement
     setDir(DIRECTIONS.ArrowRight);
+    moveRef.current = DIRECTIONS.ArrowRight;
+    
+    // Generate new food in a valid location
     setFood(generateFood(INITIAL_SNAKE));
+    
+    // Reset score
     setScore(0);
+    
+    // Reset game state flags
     setGameOver(false);
     setStarted(true);
     setPaused(false);
+    
+    // Reset game speed based on current difficulty
+    gameSpeedRef.current = DIFFICULTY[difficulty].speed;
+    
+    // If we want to add any animation or sound effects for reset
+    // we could trigger them here
+    
+    // For extra safety, clear any ongoing timers
+    // (though our useEffect cleanup should handle this)
   }
+  
+  // Check for reset conditions on mount and when specific dependencies change
+  useEffect(() => {
+    // If game should auto-reset on certain conditions, do it here
+    if (started && snake.length < 2) {
+      // Reset if snake somehow has less than 2 segments (corrupted state)
+      reset();
+    }
+  }, [started, snake.length]);
 
   // game loop
   useEffect(() => {
@@ -155,7 +183,7 @@ function Game() {
     return () => clearInterval(id);
   }, [food, gameOver, started, paused, score, highScore]);
 
-  // keyboard handler
+  // keyboard handler with improved reset behavior
   useEffect(() => {
     const handler = e => {
       // Direction keys
@@ -184,6 +212,11 @@ function Game() {
           setPaused(false);
         }
       }
+      
+      // Reset game with 'r'
+      if (e.key === 'r') {
+        reset();
+      }
     };
     
     window.addEventListener('keydown', handler);
@@ -201,6 +234,27 @@ function Game() {
       }
     }
     return false;
+  }
+
+  // Modify the quit functionality to properly reset the game state
+  function quitToMenu() {
+    // Reset snake position to initial state
+    setSnake(INITIAL_SNAKE);
+    
+    // Reset direction to initial right movement
+    setDir(DIRECTIONS.ArrowRight);
+    moveRef.current = DIRECTIONS.ArrowRight;
+    
+    // Generate new food in a valid location
+    setFood(generateFood(INITIAL_SNAKE));
+    
+    // Reset score
+    setScore(0);
+    
+    // Reset game state flags
+    setGameOver(false);
+    setStarted(false);
+    setPaused(false);
   }
 
   return (
@@ -260,7 +314,7 @@ function Game() {
           <p className="final-score">Your score: {score}</p>
           {score >= highScore && <p className="new-record">New High Score!</p>}
           <button className="primary-button" onClick={reset}>Play Again</button>
-          <button onClick={() => {setGameOver(false); setStarted(false);}}>Main Menu</button>
+          <button onClick={quitToMenu}>Main Menu</button>
         </div>
       }
       
@@ -268,7 +322,8 @@ function Game() {
         <div className="overlay pause-menu">
           <h2>Game Paused</h2>
           <button className="primary-button" onClick={() => setPaused(false)}>Resume</button>
-          <button onClick={() => {setPaused(false); setStarted(false);}}>Quit</button>
+          <button onClick={reset}>Restart Game</button>
+          <button onClick={quitToMenu}>Quit to Menu</button>
         </div>
       }
 
