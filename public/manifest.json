@@ -18,7 +18,7 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/snake/",
   "display": "standalone",
   "theme_color": "#1e1e2f",
   "background_color": "#1e1e40"
